@@ -61,7 +61,7 @@ pipeline {
                     def needsK8s = (action in ['DEPLOY', 'BUILD_AND_DEPLOY'])
                     if (needsK8s) {
                         // Namespace-scoped validation only (no cluster-wide checks).
-                        sh '''
+                        sh '''#!/usr/bin/env bash
                             set -euo pipefail
                             kubectl auth can-i get deployments -n "$K8S_NAMESPACE"
                             kubectl get deployments -n "$K8S_NAMESPACE"
@@ -86,7 +86,7 @@ pipeline {
                         // Frontend production assets are built in the image; the host
                         // runs a TypeScript gate. (pnpm, not pip.)
                         echo 'Frontend: type check'
-                        sh '''
+                        sh '''#!/usr/bin/env bash
                             set -euo pipefail
                             npm install -g pnpm@9
                             cd frontend
@@ -111,7 +111,7 @@ pipeline {
                         def doFrontend = params.COMPONENT in ['ALL', 'frontend']
 
                         // One temporary auth file, reused for both login and push.
-                        sh '''
+                        sh '''#!/usr/bin/env bash
                             set -euo pipefail
                             AUTH_FILE="$WORKSPACE/.podman-auth"
                             printf '%s' "$REG_PASS" | podman login \
@@ -120,7 +120,7 @@ pipeline {
                         '''
 
                         if (doBackend) {
-                            sh '''
+                            sh '''#!/usr/bin/env bash
                                 set -euo pipefail
                                 AUTH_FILE="$WORKSPACE/.podman-auth"
                                 podman build -f backend/Containerfile -t "$IMAGE_BACKEND" backend/
@@ -131,7 +131,7 @@ pipeline {
                         if (doFrontend) {
                             // NEXT_PUBLIC_API_URL is a build-time value pointing at the
                             // backend hostname for the target namespace.
-                            sh '''
+                            sh '''#!/usr/bin/env bash
                                 set -euo pipefail
                                 AUTH_FILE="$WORKSPACE/.podman-auth"
                                 podman build \
@@ -150,7 +150,7 @@ pipeline {
             steps {
                 script {
                     if (params.COMPONENT in ['ALL', 'backend']) {
-                        sh '''
+                        sh '''#!/usr/bin/env bash
                             set -euo pipefail
                             CORS_VALUE='["https://'"${FRONTEND_HOST}"'"]'
                             sed -i "s|IMAGE_PLACEHOLDER|$IMAGE_BACKEND|g" deploy/k8s/backend.yaml
@@ -190,7 +190,7 @@ EOF
                     }
 
                     if (params.COMPONENT in ['ALL', 'frontend']) {
-                        sh '''
+                        sh '''#!/usr/bin/env bash
                             set -euo pipefail
                             sed -i "s|IMAGE_PLACEHOLDER|$IMAGE_FRONTEND|g" deploy/k8s/frontend.yaml
                             kubectl apply -n "$K8S_NAMESPACE" -f deploy/k8s/frontend.yaml

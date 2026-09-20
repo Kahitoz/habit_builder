@@ -24,7 +24,9 @@ deploy time — there is no static ingress file.
 
 - A Multibranch Pipeline job pointing at this Git repository. The root
   `Jenkinsfile` is auto-discovered.
-- A `prod-node` worker with Podman, kubectl, Node/npm and Python (no Docker).
+- A `prod-node` worker with Bash, Podman, kubectl, Node/npm and Python (no Docker).
+  Jenkins runs the pipeline's guarded shell blocks with Bash because they use
+  `set -o pipefail`; the default `/bin/sh` may not support that option.
 - A Jenkins credential for the internal registry used to log in and push
   (the pipeline reads it into a temporary auth file).
 - `KUBECONFIG` pointing at the cluster (the pipeline sets it to

@@ -88,9 +88,8 @@ per component, and [Kubernetes manifests](deploy/k8s/backend.yaml) under
 - `BUILD_AND_DEPLOY` builds, pushes, applies the manifests, waits for the
   rollout, and generates a Traefik Ingress per component
   (`lifeforge-{frontend,backend}.<ns>.kahitoz.com`).
-- The frontend calls the backend at
-  `https://lifeforge-backend.<ns>.kahitoz.com/api`; the backend ingress routes
-  the `/api` path to FastAPI.
+- The frontend calls the same-origin `/api` path; its Ingress routes `/api`
+  to the backend Service and `/` to Next.js.
 - The backend needs a `lifeforge-backend-auth` Kubernetes Secret
   for its JWT signing key. Jenkins creates that key once per namespace and
   syncs Vault credentials for the backend; [deploy/README.md](deploy/README.md)

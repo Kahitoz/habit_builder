@@ -63,7 +63,13 @@ Create one Deployment and ClusterIP Service per deployable component in the repo
 
 Use stable, project-specific names, for example `<project>-frontend` and `<project>-backend`. The frontend Service normally exposes port 80 and targets the app's HTTP container port. The backend Service exposes its internal application port. Select the intended production node using the node labels already established in the cluster; check the actual node labels before adding `nodeSelector` values. Do not invent a node name or change labels from an application pipeline without confirming the cluster convention.
 
-For a single public hostname with the backend under `/api`, configure the ingress so `/api` routes to the backend Service and `/` routes to the frontend Service. Use Traefik and preserve `/api` unless the backend explicitly expects path stripping. Add any other required API subpaths (for example, `/audio`) deliberately. Point the ingress to the project hostname, such as `myapp.kahitoz.com`; do not reuse another project's host.
+Choose the public routing shape deliberately: the frontend and API may share one hostname or use separate hostnames. Keep the frontend API base URL, backend route prefix, and ingress path behavior consistent.
+
+- For a same-host API under `/api`, use a relative frontend API base such as `/api`. Route `/api` to the backend Service and `/` to the frontend Service. The backend should serve routes under `/api`, or the ingress should strip that prefix if the backend routes are unprefixed.
+- For separate frontend and API hostnames, use the full API URL as the frontend base and configure CORS for the frontend origin.
+- Preserve or strip `/api` intentionally. Do not configure both the backend and proxy to add or both to remove the prefix. Add other required API paths deliberately, and use the project's own hostnames.
+
+CORS is based on the browser origin (scheme, hostname, and port); URL paths such as `/api` are not part of an origin. A separate API hostname remains cross-origin even when the API uses `/api`, so configure the backend's allowed origins with the exact frontend origin. When frontend and API share one hostname, path-based routing is same-origin and may not need CORS. Keep health probes pointed at a real backend endpoint through the Service or Pod; they do not need to use the public ingress path.
 
 Before deployment, the pipeline should check the selected namespace and Kubernetes authorization (`kubectl auth can-i`), apply manifests, and wait for each Deployment's rollout. Deployment must fail clearly if the cluster is unreachable or the rollout times out.
 

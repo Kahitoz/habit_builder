@@ -142,7 +142,7 @@ pipeline {
                                 set -euo pipefail
                                 AUTH_FILE="$WORKSPACE/.podman-auth"
                                 podman build \
-                                    --build-arg NEXT_PUBLIC_API_URL="https://$BACKEND_HOST/api" \
+                                    --build-arg NEXT_PUBLIC_API_URL="/api" \
                                     -f frontend/Containerfile -t "$IMAGE_FRONTEND" frontend/
                                 podman push --authfile "$AUTH_FILE" --tls-verify=false "$IMAGE_FRONTEND"
                             '''
@@ -263,6 +263,13 @@ spec:
     - host: $FRONTEND_HOST
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: lifeforge-backend
+                port:
+                  number: 8000
           - path: /
             pathType: Prefix
             backend:

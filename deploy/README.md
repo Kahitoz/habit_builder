@@ -86,16 +86,15 @@ Each setting is validated only when the requested action actually needs it.
 2. On a branch, run with `ACTION=ARTIFACT_ONLY` first to confirm the build.
 3. Configure the `vault-creds` Jenkins credential (section 2).
 4. Run `ACTION=BUILD_AND_DEPLOY`, `COMPONENT=ALL`, `K8S_NAMESPACE=<ns>`.
-5. Open `https://lifeforge-frontend.<ns>.kahitoz.com`. The frontend calls
-   `https://lifeforge-backend.<ns>.kahitoz.com/api` (that URL is baked into
-   the image at build time).
+5. Open `https://lifeforge-frontend.<ns>.kahitoz.com`. Its Ingress sends
+   `/api` requests to the backend Service and all other paths to the frontend.
 
 ## 5. Notes
 
-- **Frontend API URL is build-time.** `NEXT_PUBLIC_API_URL` is inlined into the
-  client bundle, so the image for namespace `X` always talks to
-  `lifeforge-backend.X.kahitoz.com/api`. Building once and deploying to two
-  namespaces would leave one image pointing at the wrong backend.
+- **Frontend API URL is build-time.** Production images use the relative
+  `NEXT_PUBLIC_API_URL=/api`, so API requests stay on the frontend origin and
+  the Ingress routes them to the backend Service. Local development defaults
+  to `http://localhost:8000/api`.
 - **API path.** FastAPI exposes application routes under `/api`; the backend
   ingress routes that prefix to the backend Service. Health checks remain at
   `/health` inside the cluster.

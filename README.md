@@ -54,7 +54,7 @@ The frontend talks to `http://localhost:8000` by default; override with
 ```bash
 docker compose up -d postgres                       # from the repo root
 cd backend
-uv sync --extra postgres
+uv sync --group postgres
 export DATABASE_URL="postgresql+psycopg://lifeforge:changeme@localhost:5432/lifeforge"
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --port 8000

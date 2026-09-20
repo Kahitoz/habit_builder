@@ -66,7 +66,7 @@ The entire data layer is dialect-portable on purpose:
 To run on PostgreSQL, install the driver and point `DATABASE_URL` at it:
 
 ```bash
-uv sync --extra postgres                 # installs psycopg (v3)
+uv sync --group postgres                  # installs psycopg (v3)
 export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/lifeforge"
 uv run alembic upgrade head              # apply migrations to Postgres
 uv run uvicorn app.main:app --reload

@@ -88,10 +88,9 @@ pipeline {
                         echo 'Frontend: type check'
                         sh '''#!/usr/bin/env bash
                             set -euo pipefail
-                            npm install -g pnpm@9
                             cd frontend
-                            pnpm install --frozen-lockfile
-                            pnpm typecheck
+                            npx --yes pnpm@9 install --frozen-lockfile
+                            npx --yes pnpm@9 typecheck
                         '''
                     }
                 }

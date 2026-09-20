@@ -1,0 +1,43 @@
+# LifeForge frontend image.
+#
+# Build (from the repo root):
+#   podman build -f frontend/Containerfile \
+#     --build-arg NEXT_PUBLIC_API_URL=https://lifeforge-backend.<ns>.kahitoz.com \
+#     -t <registry>/lifeforge-frontend:<tag> frontend/
+#
+# The production .next build is produced INSIDE the image (never copied in),
+# so the served assets always match the committed source. NEXT_PUBLIC_API_URL
+# is a build-time value (Next.js inlines NEXT_PUBLIC_* at build time), so it
+# must point at the backend's public hostname for the target namespace.
+
+FROM node:20-slim
+
+WORKDIR /app
+
+# pnpm 9 matches the committed pnpm-lock.yaml (lockfileVersion 9.0).
+RUN npm install -g pnpm@9
+
+# Layer-cache the dependency install.
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Application source (node_modules/.next are excluded via .containerignore).
+COPY . .
+
+# Remove any stale build so only the in-image build is served.
+RUN rm -rf .next
+
+# Build-time API base URL, inlined into the client bundle.
+ARG NEXT_PUBLIC_API_URL="http://localhost:8000"
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+RUN pnpm build
+
+# Drop dev dependencies now that the build exists.
+RUN pnpm prune --prod
+
+ENV NODE_ENV=production \
+    PORT=3000
+
+EXPOSE 3000
+
+CMD ["pnpm", "start"]

@@ -1,0 +1,35 @@
+# LifeForge backend image.
+#
+# Build (from the repo root):
+#   podman build -f backend/Containerfile -t <registry>/lifeforge-backend:<tag> backend/
+#
+# Runtime configuration is 12-factor: DATABASE_URL, JWT_SECRET and
+# CORS_ORIGINS are injected by the orchestrator (see deploy/README.md).
+# The image itself carries no secrets.
+
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:${PATH}"
+
+WORKDIR /app
+
+# Install uv (the project's package manager) from PyPI.
+RUN pip install --no-cache-dir uv
+
+# Layer-cache the dependency install: copy only the manifests first and
+# resolve them from the lockfile. --no-dev drops the test group
+# (pytest, httpx); --group postgres adds psycopg[binary] which the
+# production PostgreSQL driver needs.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --group postgres
+
+# Application code + migrations.
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,70 @@
+# LifeForge frontend — Deployment + Service.
+#
+# The `image` field holds IMAGE_PLACEHOLDER; the pipeline replaces it with the
+# commit-tagged registry image. The backend API base URL is baked into the
+# image at build time (NEXT_PUBLIC_API_URL), so this manifest carries no
+# namespace-specific runtime configuration.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lifeforge-frontend
+  labels:
+    app: lifeforge-frontend
+    app.kubernetes.io/part-of: lifeforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lifeforge-frontend
+  template:
+    metadata:
+      labels:
+        app: lifeforge-frontend
+        app.kubernetes.io/part-of: lifeforge
+    spec:
+      nodeSelector:
+        app: app
+      containers:
+        - name: lifeforge-frontend
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 25
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lifeforge-frontend
+  labels:
+    app: lifeforge-frontend
+    app.kubernetes.io/part-of: lifeforge
+spec:
+  type: ClusterIP
+  selector:
+    app: lifeforge-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

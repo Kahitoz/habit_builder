@@ -73,6 +73,25 @@ Switching back to SQLite is just changing `DATABASE_URL` back and re-running
 `alembic upgrade head` — the models and migrations are dialect-portable
 (see [backend/README.md](backend/README.md) for the rules that keep it so).
 
+## Deployment
+
+The repo ships a complete deployment pipeline: a root [Jenkinsfile](Jenkinsfile)
+(Jenkins Multibranch, `prod-node` agent), a [Containerfile](backend/Containerfile)
+per component, and [Kubernetes manifests](deploy/k8s/backend.yaml) under
+`deploy/`.
+
+- Images are built with Podman and pushed to the internal registry
+  (`192.168.0.101:5000`) tagged with the first 12 characters of the commit —
+  never `latest`.
+- `ACTION=ARTIFACT_ONLY` is the safe path: host build/test and archive with no
+  registry or Kubernetes settings required.
+- `BUILD_AND_DEPLOY` builds, pushes, applies the manifests, waits for the
+  rollout, and generates a Traefik Ingress per component
+  (`lifeforge-{frontend,backend}.<ns>.kahitoz.com`).
+- The backend needs a `lifeforge-backend` Kubernetes Secret
+  (`DATABASE_URL`, `JWT_SECRET`); [deploy/README.md](deploy/README.md) has a
+  Vault-backed snippet for creating it plus the full runbook.
+
 ## Testing
 
 ```bash

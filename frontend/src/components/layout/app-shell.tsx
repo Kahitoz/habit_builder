@@ -13,10 +13,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const { setOpen } = useCommandPalette();
 
+  // The persisted auth state rehydrates around client bootstrap. During the
+  // React hydration commit, useSyncExternalStore deliberately serves the
+  // server snapshot (the initial, unauthenticated state), so an auth
+  // decision made in that first render would bounce a valid session to
+  // /login on every hard reload. We therefore never decide while `hydrated`
+  // is false: it starts false and is flipped in an effect, i.e. only after
+  // the commit that may still be serving the server snapshot. By the next
+  // render the hook values come from the rehydrated client state.
+  const [hydrated, setHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    // If storage was unavailable when the store was created, the persist
+    // API does not exist; the in-memory state is already the truth.
+    const persistApi = useAuthStore.persist;
+    if (!persistApi || persistApi.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    return persistApi.onFinishHydration(() => setHydrated(true));
+  }, []);
+
   // Auth guard: redirect unauthenticated users to the login page.
   React.useEffect(() => {
-    if (!accessToken) router.replace("/login");
-  }, [accessToken, router]);
+    if (hydrated && !accessToken) {
+      router.replace("/login");
+    }
+  }, [accessToken, hydrated, router]);
 
   // Cmd/Ctrl+K opens the command palette.
   React.useEffect(() => {
@@ -30,7 +53,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [setOpen]);
 
-  if (!accessToken) {
+  // While the persisted auth state is still loading, or the user isn't
+  // authenticated, show a neutral shell (no page content or layout chrome).
+  if (!hydrated || !accessToken) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Redirecting…</p>

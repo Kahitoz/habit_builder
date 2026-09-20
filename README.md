@@ -49,6 +49,15 @@ pnpm dev            # http://localhost:3000
 The frontend talks to `http://localhost:8000` by default; override with
 `NEXT_PUBLIC_API_URL` in `frontend/.env.local` if your API lives elsewhere.
 
+### Authentication & sessions
+
+The API uses JWT auth: a short-lived **access token** (15 min) plus a
+rotating single-use **refresh token** (30 days). The frontend stores both in
+`localStorage` (zustand `persist`, key `lifeforge-auth`) and silently
+refreshes before the access token expires, so a hard reload keeps you signed
+in. If the persisted entry is ever corrupted, the app clears it and sends
+you back to the login page instead of hanging on a loading screen.
+
 ### Using PostgreSQL instead of SQLite
 
 ```bash

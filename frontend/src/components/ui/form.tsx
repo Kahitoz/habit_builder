@@ -61,7 +61,7 @@ export function FormField<
 const FormItemContext = React.createContext<FormFieldContextValue | null>(null);
 
 export function FormItem({ className, ...props }: React.ComponentProps<"div">) {
-  const context = React.useContext(FormItemContext);
+  const context = React.useContext(FormFieldContext);
   if (!context) throw new Error("FormItem must be used within a FormField");
   return (
     <FormItemContext.Provider value={context}>

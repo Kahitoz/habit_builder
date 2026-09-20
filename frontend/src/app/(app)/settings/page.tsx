@@ -254,7 +254,6 @@ export default function SettingsPage() {
                     <Button
                       type="submit"
                       disabled={passwordMutation.isPending}
-                      onClick={() => passwordForm.handleSubmit((v) => passwordMutation.mutate(v))()}
                     >
                       {passwordMutation.isPending ? "Changing…" : "Change password"}
                     </Button>

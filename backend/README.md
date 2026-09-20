@@ -55,6 +55,12 @@ In Kubernetes, Jenkins injects `VAULT_ADDR` and `VAULT_TOKEN` from the
 memory. `JWT_SECRET` comes from the `lifeforge-backend-auth` Secret; Jenkins
 generates it once if missing and reuses it on later deployments.
 
+At startup, the backend also normalizes legacy PostgreSQL `users.id` columns
+and their foreign keys from UUID-formatted varchar values to native UUID before
+creating any missing tables. The Alembic revision
+`a9c461ef3721` records the same one-way schema migration for migration-managed
+databases.
+
 ## Switching between SQLite and PostgreSQL
 
 The entire data layer is dialect-portable on purpose:

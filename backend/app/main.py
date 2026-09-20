@@ -11,7 +11,7 @@ from app.api.router import api_router
 from app.core.config import get_settings, load_vault_settings
 from app.core.errors import register_exception_handlers
 from app.db.base import Base
-from app.db.session import get_engine
+from app.db.session import app_schema_name, get_engine
 from app.db.uuid_migration import normalize_user_ids_to_uuid
 import app.models  # noqa: F401  (registers every model on Base.metadata)
 
@@ -22,6 +22,10 @@ async def lifespan(app: FastAPI):
     if settings.auto_create:
         engine = get_engine()
         with engine.begin() as connection:
+            if connection.dialect.name == "postgresql":
+                schema = app_schema_name(settings.app_name)
+                quoted_schema = connection.dialect.identifier_preparer.quote(schema)
+                connection.exec_driver_sql(f"SET LOCAL search_path TO {quoted_schema}")
             normalize_user_ids_to_uuid(connection)
         Base.metadata.create_all(engine)
     yield

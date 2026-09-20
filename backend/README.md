@@ -20,7 +20,10 @@ uv run uvicorn app.main:app --reload --port 8000
 ```
 
 The app creates its tables automatically on startup
-(`AUTO_CREATE=true`, the default) — fine for local dev. For a serious
+(`AUTO_CREATE=true`, the default) — fine for local dev. On PostgreSQL it also
+creates a schema from `APP_NAME` (lowercase, with spaces replaced by `_`) and
+stores all app tables there; for example, `LifeForge API` uses
+`lifeforge_api`. For a serious
 deployment prefer Alembic:
 
 ```bash

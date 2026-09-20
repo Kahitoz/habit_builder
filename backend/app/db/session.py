@@ -13,6 +13,7 @@ Switching databases is a single environment variable:
 from __future__ import annotations
 
 from collections.abc import Iterator
+import re
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -41,10 +42,35 @@ def create_engine_for_url(url: str) -> Engine:
     return create_engine(url, **kwargs)
 
 
+def app_schema_name(app_name: str) -> str:
+    """Return a stable PostgreSQL schema identifier derived from the app name."""
+    schema = re.sub(r"[^a-z0-9_]+", "_", app_name.lower()).strip("_")
+    if not schema:
+        raise ValueError("APP_NAME must contain at least one letter or number.")
+    return schema[:63]
+
+
+def _create_app_engine(url: str) -> Engine:
+    engine = create_engine_for_url(url)
+    if not is_sqlite_url(url):
+        from app.core.config import get_settings
+
+        schema = app_schema_name(get_settings().app_name)
+        identifier = engine.dialect.identifier_preparer.quote(schema)
+        # Make startup self-contained: provisioning the database is enough;
+        # the app creates its namespace and all ORM tables on startup.
+        with engine.begin() as connection:
+            connection.exec_driver_sql(f"CREATE SCHEMA IF NOT EXISTS {identifier}")
+        # Apply the schema to ORM queries as well as create_all(), so all app
+        # tables live under the app-specific namespace instead of public.
+        engine = engine.execution_options(schema_translate_map={None: schema})
+    return engine
+
+
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
-        _engine = create_engine_for_url(get_settings().database_url)
+        _engine = _create_app_engine(get_settings().database_url)
     return _engine
 
 

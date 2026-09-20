@@ -49,6 +49,12 @@ see `.env.example`):
 | `CORS_ORIGINS` | `["http://localhost:3000"]` | JSON list of allowed origins |
 | `AUTO_CREATE` | `true` | Run `create_all` on startup (dev convenience) |
 
+In Kubernetes, Jenkins injects `VAULT_ADDR` and `VAULT_TOKEN` from the
+`lifeforge-vault` Secret. The backend reads the PostgreSQL fields from
+`secret/home-infra/postgres` once at startup and builds `DATABASE_URL` in
+memory. `JWT_SECRET` comes from the `lifeforge-backend-auth` Secret; Jenkins
+generates it once if missing and reuses it on later deployments.
+
 ## Switching between SQLite and PostgreSQL
 
 The entire data layer is dialect-portable on purpose:

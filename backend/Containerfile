@@ -7,6 +7,8 @@
 # CORS_ORIGINS are injected by the orchestrator (see deploy/README.md).
 # The image itself carries no secrets.
 
+FROM hashicorp/vault:2.1.1 AS vault-cli
+
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -14,6 +16,8 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:${PATH}"
 
 WORKDIR /app
+
+COPY --from=vault-cli /bin/vault /usr/local/bin/vault
 
 # Install uv (the project's package manager) from PyPI.
 RUN pip install --no-cache-dir uv

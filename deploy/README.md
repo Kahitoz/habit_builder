@@ -32,49 +32,32 @@ deploy time — there is no static ingress file.
 - `KUBECONFIG` pointing at the cluster (the pipeline sets it to
   `/var/lib/jenkins/.kube/config`).
 
-## 2. Create the backend Kubernetes Secret
+## 2. Vault and backend secrets
 
-The backend reads `DATABASE_URL` and `JWT_SECRET` from a Kubernetes Secret
-named **`lifeforge-backend`**. Create it once per namespace you deploy to.
-The PostgreSQL connection details come from Vault
-(`secret/home-infra/postgres`).
+Add a Jenkins **Username with password** credential with ID `vault-creds`:
 
-Run this on a machine with `vault` and `kubectl`, with the cluster context
-selected. **Never echo the values.**
+- Username: `https://privatevault.kahitoz.com` (`VAULT_ADDR`)
+- Password: a read-only Vault token (`VAULT_TOKEN`) allowed to read
+  `secret/home-infra/postgres`
 
-```bash
-set +x   # keep secrets out of the shell log
-NS=demo                                   # target namespace
+When deploying the backend, Jenkins writes those values through standard input
+to the namespace-scoped `lifeforge-vault` Secret. The backend image includes
+the Vault CLI and reads the PostgreSQL fields once at startup to build its
+database URL in memory. The token and database values are not printed or stored
+in the image or manifests.
 
-# --- Vault connection (see vault_connection.md) ---
-export VAULT_ADDR="https://privatevault.kahitoz.com"
-export VAULT_TOKEN="$(cat /home/kahitoz/projects/token)"   # loaded, never printed
+Jenkins also creates `lifeforge-backend-auth` with a random `JWT_SECRET` when
+that Secret/key is missing. Later deployments reuse the existing key, so users'
+tokens remain valid across releases. The backend Deployment imports Vault
+credentials and reads the JWT key from the separate Secret. Deployments need
+namespace-scoped permission to get, create, and patch Secrets.
 
-pg() { vault kv get -field="$1" secret/home-infra/postgres; }
+Secret changes do not refresh environment variables in running containers, so
+the pipeline restarts the backend after syncing them. Rotating `JWT_SECRET`
+manually invalidates existing sessions.
 
-# Build the SQLAlchemy URL. Percent-encode the password (it may contain
-# characters that are not valid in a URL).
-RAW_PW="$(pg password)"
-PW_ENC="$(RAW_PW="$RAW_PW" python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["RAW_PW"],safe=""))')"
-
-DB_URL="postgresql+psycopg://$(pg username):${PW_ENC}@$(pg host):$(pg port)/$(pg database)"
-
-# A strong random secret for JWT signing (generate once, reuse per namespace)
-JWT="$(python3 -c 'import secrets;print(secrets.token_urlsafe(48))')"
-
-kubectl create secret generic lifeforge-backend \
-  -n "$NS" \
-  --from-literal=DATABASE_URL="$DB_URL" \
-  --from-literal=JWT_SECRET="$JWT" \
-  --dry-run=client -o yaml | kubectl apply -n "$NS" -f -
-
-unset RAW_PW DB_URL JWT
-```
-
-To rotate later, re-run the same `kubectl create secret ... --dry-run=client -o yaml | kubectl apply` block — it updates the existing Secret. After rotating `JWT_SECRET`, existing sessions are invalidated (expected).
-
-> **Do not** put `DATABASE_URL` or `JWT_SECRET` in the manifests, the
-> Jenkinsfile, or as plain Jenkins environment variables.
+> **Do not** put Vault tokens, PostgreSQL values, or JWT keys in manifests,
+> source code, or image build arguments.
 
 ## 3. Pipeline parameters
 
@@ -101,7 +84,7 @@ Each setting is validated only when the requested action actually needs it.
 
 1. Configure the Multibranch job (scan this repository).
 2. On a branch, run with `ACTION=ARTIFACT_ONLY` first to confirm the build.
-3. Create the `lifeforge-backend` Secret (section 2).
+3. Configure the `vault-creds` Jenkins credential (section 2).
 4. Run `ACTION=BUILD_AND_DEPLOY`, `COMPONENT=ALL`, `K8S_NAMESPACE=<ns>`.
 5. Open `https://lifeforge-frontend.<ns>.kahitoz.com`. The frontend calls
    `https://lifeforge-backend.<ns>.kahitoz.com` directly (that URL is baked
@@ -123,3 +106,16 @@ Each setting is validated only when the requested action actually needs it.
   explicitly and waits on `kubectl rollout status`.
 - **Node selector.** Both Deployments carry `nodeSelector: { app: app }` to
   schedule on the app pool.
+
+## 6. Startup troubleshooting
+
+- **Backend `CreateContainerConfigError` mentioning a Secret:** confirm
+  `vault-creds` exists in Jenkins and that the deploy job can get, create, and
+  patch Secrets in the target namespace. The pipeline creates the required
+  `lifeforge-vault` and `lifeforge-backend-auth` Secrets before applying the
+  backend Deployment.
+- **Frontend exits with `Cannot find module 'typescript'`:** the production
+  image prunes development dependencies after building. Keep the Next config
+  in JavaScript (`next.config.mjs`) so starting the production server does not
+  require TypeScript. Rebuild and deploy the frontend image after config
+  changes.

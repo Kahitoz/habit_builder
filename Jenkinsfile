@@ -66,6 +66,14 @@ pipeline {
                             kubectl auth can-i get deployments -n "$K8S_NAMESPACE"
                             kubectl get deployments -n "$K8S_NAMESPACE"
                         '''
+                        if (component in ['ALL', 'backend']) {
+                            sh '''#!/usr/bin/env bash
+                                set -euo pipefail
+                                kubectl auth can-i get secrets -n "$K8S_NAMESPACE"
+                                kubectl auth can-i create secrets -n "$K8S_NAMESPACE"
+                                kubectl auth can-i patch secrets -n "$K8S_NAMESPACE"
+                            '''
+                        }
                     }
                     echo "ACTION=${action} COMPONENT=${component} K8S_NAMESPACE=${K8S_NAMESPACE} needsK8s=${needsK8s}"
                 }
@@ -149,6 +157,42 @@ pipeline {
             steps {
                 script {
                     if (params.COMPONENT in ['ALL', 'backend']) {
+                        // Refresh the Vault access Secret from the Jenkins credential.
+                        withCredentials([usernamePassword(
+                            credentialsId: 'vault-creds',
+                            usernameVariable: 'VAULT_ADDR',
+                            passwordVariable: 'VAULT_TOKEN'
+                        )]) {
+                            sh '''#!/usr/bin/env bash
+                                set +x
+                                set -euo pipefail
+                                printf 'VAULT_ADDR=%s\nVAULT_TOKEN=%s\n' "$VAULT_ADDR" "$VAULT_TOKEN" |
+                                    kubectl create secret generic lifeforge-vault \
+                                        -n "$K8S_NAMESPACE" --from-env-file=/dev/stdin \
+                                        --dry-run=client -o yaml |
+                                    kubectl apply -f -
+                            '''
+                        }
+
+                        // Keep the signing key stable across deployments. Create it
+                        // only once in Kubernetes and reuse it on subsequent releases.
+                        sh '''#!/usr/bin/env bash
+                            set +x
+                            set -euo pipefail
+                            jwt_b64="$(kubectl get secret lifeforge-backend-auth \
+                                -n "$K8S_NAMESPACE" -o 'jsonpath={.data.JWT_SECRET}' 2>/dev/null || true)"
+                            jwt_secret="$(printf '%s' "$jwt_b64" | base64 --decode 2>/dev/null || true)"
+                            if [[ -z "$jwt_secret" ]]; then
+                                jwt_secret="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+                            fi
+                            printf 'JWT_SECRET=%s\n' "$jwt_secret" |
+                                kubectl create secret generic lifeforge-backend-auth \
+                                    -n "$K8S_NAMESPACE" --from-env-file=/dev/stdin \
+                                    --dry-run=client -o yaml |
+                                kubectl apply -f -
+                            unset jwt_b64 jwt_secret
+                        '''
+
                         sh '''#!/usr/bin/env bash
                             set -euo pipefail
                             CORS_VALUE='["https://'"${FRONTEND_HOST}"'"]'
@@ -157,6 +201,10 @@ pipeline {
                             kubectl apply -n "$K8S_NAMESPACE" -f deploy/k8s/backend.yaml
                             kubectl set image -n "$K8S_NAMESPACE" \
                                 deployment/lifeforge-backend "lifeforge-backend=$IMAGE_BACKEND"
+                            # Secret env vars are read at container startup. Force a
+                            # restart so refreshed Vault credentials take effect.
+                            kubectl rollout restart -n "$K8S_NAMESPACE" \
+                                deployment/lifeforge-backend
                             kubectl rollout status -n "$K8S_NAMESPACE" \
                                 deployment/lifeforge-backend --timeout=300s
 

@@ -1,8 +1,8 @@
 # LifeForge backend — Deployment + Service.
 #
 # The `image` field holds IMAGE_PLACEHOLDER; the pipeline replaces it with the
-# commit-tagged registry image. Secrets (DATABASE_URL, JWT_SECRET) come from
-# the `lifeforge-backend` Kubernetes Secret — see deploy/README.md.
+# commit-tagged registry image. Vault credentials and the stable JWT secret are
+# provisioned by Jenkins — see deploy/README.md.
 #
 # CORS_ORIGINS_PLACEHOLDER is replaced by the pipeline with the JSON list of
 # allowed frontend origins for the target namespace.
@@ -35,15 +35,10 @@ spec:
             - name: http
               containerPort: 8000
           env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: lifeforge-backend
-                  key: DATABASE_URL
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: lifeforge-backend
+                  name: lifeforge-backend-auth
                   key: JWT_SECRET
             - name: CORS_ORIGINS
               value: 'CORS_ORIGINS_PLACEHOLDER'
@@ -51,6 +46,9 @@ spec:
               value: "true"
             - name: DEBUG
               value: "false"
+          envFrom:
+            - secretRef:
+                name: lifeforge-vault
           readinessProbe:
             httpGet:
               path: /health

@@ -88,9 +88,10 @@ per component, and [Kubernetes manifests](deploy/k8s/backend.yaml) under
 - `BUILD_AND_DEPLOY` builds, pushes, applies the manifests, waits for the
   rollout, and generates a Traefik Ingress per component
   (`lifeforge-{frontend,backend}.<ns>.kahitoz.com`).
-- The backend needs a `lifeforge-backend` Kubernetes Secret
-  (`DATABASE_URL`, `JWT_SECRET`); [deploy/README.md](deploy/README.md) has a
-  Vault-backed snippet for creating it plus the full runbook.
+- The backend needs a `lifeforge-backend-auth` Kubernetes Secret
+  for its JWT signing key. Jenkins creates that key once per namespace and
+  syncs Vault credentials for the backend; [deploy/README.md](deploy/README.md)
+  documents the required `vault-creds` Jenkins credential and full runbook.
 
 ## Testing
 

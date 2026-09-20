@@ -6,7 +6,7 @@ from tests.conftest import make_habit, total_xp, today_str
 
 
 def test_overview_counts(client, user):
-    blank = client.get("/analytics/overview", headers=user["headers"]).json()
+    blank = client.get("/api/analytics/overview", headers=user["headers"]).json()
     assert blank["totalCompletions"] == 0
     assert blank["totalXp"] == 0
     assert blank["activeHabits"] == 0 and blank["totalHabits"] == 0
@@ -16,11 +16,11 @@ def test_overview_counts(client, user):
 
     make_habit(client, user["headers"], title="One")
     h2 = make_habit(client, user["headers"], title="Two")
-    client.post("/goals", json={"title": "Goal", "category": "career"},
+    client.post("/api/goals", json={"title": "Goal", "category": "career"},
                 headers=user["headers"])
-    client.post(f"/habits/{h2['id']}/complete", headers=user["headers"])
+    client.post(f"/api/habits/{h2['id']}/complete", headers=user["headers"])
 
-    ov = client.get("/analytics/overview", headers=user["headers"]).json()
+    ov = client.get("/api/analytics/overview", headers=user["headers"]).json()
     assert ov["totalHabits"] == 2 and ov["activeHabits"] == 2
     assert ov["totalCompletions"] == 1
     # One of two scheduled habits done -> no perfect day, just completion XP.
@@ -32,9 +32,9 @@ def test_overview_counts(client, user):
 
 def test_heatmap(client, user):
     h = make_habit(client, user["headers"])
-    client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
+    client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
 
-    cells = client.get("/analytics/heatmap?months=2",
+    cells = client.get("/api/analytics/heatmap?months=2",
                        headers=user["headers"]).json()
     assert isinstance(cells, list) and 55 <= len(cells) <= 70
     today = today_str(client, user["headers"])
@@ -47,9 +47,9 @@ def test_heatmap(client, user):
 
 def test_consistency_series(client, user):
     h = make_habit(client, user["headers"])
-    client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
+    client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
 
-    pts = client.get("/analytics/consistency?days=14",
+    pts = client.get("/api/analytics/consistency?days=14",
                      headers=user["headers"]).json()
     assert len(pts) == 14
     dates = [p["date"] for p in pts]
@@ -61,9 +61,9 @@ def test_consistency_series(client, user):
 
 def test_xp_timeline(client, user):
     h = make_habit(client, user["headers"], difficulty="hard")
-    client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
+    client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
 
-    pts = client.get("/analytics/xp?days=14",
+    pts = client.get("/api/analytics/xp?days=14",
                      headers=user["headers"]).json()
     assert len(pts) == 14
     cumulatives = [p["cumulative"] for p in pts]
@@ -73,11 +73,11 @@ def test_xp_timeline(client, user):
 
 
 def test_category_breakdown(client, user):
-    goal = client.post("/goals", json={"title": "Get fit", "category": "health"},
+    goal = client.post("/api/goals", json={"title": "Get fit", "category": "health"},
                        headers=user["headers"]).json()
     make_habit(client, user["headers"], title="Gym", goalId=goal["id"])
 
-    cats = client.get("/analytics/categories", headers=user["headers"]).json()
+    cats = client.get("/api/analytics/categories", headers=user["headers"]).json()
     health = next(c for c in cats if c["category"] == "health")
     assert health["goals"] == 1
     assert health["habits"] == 1
@@ -85,4 +85,4 @@ def test_category_breakdown(client, user):
 
 
 def test_analytics_require_auth(client):
-    assert client.get("/analytics/overview").status_code == 401
+    assert client.get("/api/analytics/overview").status_code == 401

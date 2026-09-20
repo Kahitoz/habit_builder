@@ -46,7 +46,7 @@ pnpm install
 pnpm dev            # http://localhost:3000
 ```
 
-The frontend talks to `http://localhost:8000` by default; override with
+The frontend talks to `http://localhost:8000/api` by default; override with
 `NEXT_PUBLIC_API_URL` in `frontend/.env.local` if your API lives elsewhere.
 
 ### Authentication & sessions
@@ -88,6 +88,9 @@ per component, and [Kubernetes manifests](deploy/k8s/backend.yaml) under
 - `BUILD_AND_DEPLOY` builds, pushes, applies the manifests, waits for the
   rollout, and generates a Traefik Ingress per component
   (`lifeforge-{frontend,backend}.<ns>.kahitoz.com`).
+- The frontend calls the backend at
+  `https://lifeforge-backend.<ns>.kahitoz.com/api`; the backend ingress routes
+  the `/api` path to FastAPI.
 - The backend needs a `lifeforge-backend-auth` Kubernetes Secret
   for its JWT signing key. Jenkins creates that key once per namespace and
   syncs Vault credentials for the backend; [deploy/README.md](deploy/README.md)

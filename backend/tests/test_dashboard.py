@@ -12,7 +12,7 @@ def shift(iso: str, n: int) -> str:
 
 
 def test_dashboard_today_shape(client, user):
-    body = client.get("/dashboard/today", headers=user["headers"]).json()
+    body = client.get("/api/dashboard/today", headers=user["headers"]).json()
     assert body["date"] == today_str(client, user["headers"])
     assert body["timeOfDay"] in {"morning", "midday", "evening", "night"}
     # Brand-new user: nothing scheduled.
@@ -35,13 +35,13 @@ def test_day_state_perfect_and_closed(client, user):
     today = today_str(client, user["headers"])
 
     past = shift(today, -5)
-    before = client.get(f"/dashboard/{past}", headers=user["headers"]).json()
+    before = client.get(f"/api/dashboard/{past}", headers=user["headers"]).json()
     assert before["date"] == past
     assert before["timeOfDay"] is None  # time-of-day only makes sense today
     assert before["dayState"] == "closed"
 
-    client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
-    body = client.get("/dashboard/today", headers=user["headers"]).json()
+    client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
+    body = client.get("/api/dashboard/today", headers=user["headers"]).json()
     assert body["dayState"] == "perfect"
     assert body["summary"]["completed"] == 1
     assert body["summary"]["remaining"] == 0
@@ -50,16 +50,16 @@ def test_day_state_perfect_and_closed(client, user):
     assert body["habits"][0]["done"] is True
 
     # Backfilling a past day flips that day from closed to perfect.
-    client.post(f"/habits/{h['id']}/complete", json={"date": past},
+    client.post(f"/api/habits/{h['id']}/complete", json={"date": past},
                 headers=user["headers"])
-    after = client.get(f"/dashboard/{past}", headers=user["headers"]).json()
+    after = client.get(f"/api/dashboard/{past}", headers=user["headers"]).json()
     assert after["dayState"] == "perfect"
 
 
 def test_day_state_future_is_fresh(client, user):
     make_habit(client, user["headers"])
     today = today_str(client, user["headers"])
-    body = client.get(f"/dashboard/{shift(today, 3)}",
+    body = client.get(f"/api/dashboard/{shift(today, 3)}",
                       headers=user["headers"]).json()
     assert body["dayState"] == "fresh"
     assert body["timeOfDay"] is None
@@ -68,9 +68,9 @@ def test_day_state_future_is_fresh(client, user):
 def test_day_state_at_risk(client, user):
     h = make_habit(client, user["headers"])
     today = today_str(client, user["headers"])
-    client.post(f"/habits/{h['id']}/complete", json={"date": shift(today, -1)},
+    client.post(f"/api/habits/{h['id']}/complete", json={"date": shift(today, -1)},
                 headers=user["headers"])
-    body = client.get("/dashboard/today", headers=user["headers"]).json()
+    body = client.get("/api/dashboard/today", headers=user["headers"]).json()
     assert body["summary"]["atRiskCount"] == 1
     assert body["dayState"] == "at_risk"
     assert body["habits"][0]["atRisk"] is True
@@ -82,14 +82,14 @@ def test_day_state_recovery(client, user):
     # completion today -> recovery (not at_risk: streaks are all zero).
     a = make_habit(client, user["headers"], title="A")
     make_habit(client, user["headers"], title="B")
-    client.post(f"/habits/{a['id']}/complete", headers=user["headers"])
-    body = client.get("/dashboard/today", headers=user["headers"]).json()
+    client.post(f"/api/habits/{a['id']}/complete", headers=user["headers"])
+    body = client.get("/api/dashboard/today", headers=user["headers"]).json()
     assert body["summary"]["remaining"] == 1
     assert body["summary"]["atRiskCount"] == 0
     assert body["dayState"] == "recovery"
 
 
 def test_dashboard_rejects_bad_day(client, user):
-    r = client.get("/dashboard/not-a-date", headers=user["headers"])
+    r = client.get("/api/dashboard/not-a-date", headers=user["headers"])
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "VALIDATION_ERROR"

@@ -4,7 +4,7 @@ LifeForge ships two independently buildable and deployable components:
 
 | Component | Tech          | Container port | K8s Service | Public hostname (per namespace)          |
 | --------- | ------------- | -------------- | ----------- | ---------------------------------------- |
-| `backend` | FastAPI (Py)  | 8000           | `lifeforge-backend` :8000 | `lifeforge-backend.<ns>.kahitoz.com` |
+| `backend` | FastAPI (Py)  | 8000           | `lifeforge-backend` :8000 | `lifeforge-backend.<ns>.kahitoz.com/api` |
 | `frontend`| Next.js (Node)| 3000           | `lifeforge-frontend` :80  | `lifeforge-frontend.<ns>.kahitoz.com`  |
 
 `<ns>` is the `K8S_NAMESPACE` pipeline parameter (default `demo`).
@@ -87,15 +87,18 @@ Each setting is validated only when the requested action actually needs it.
 3. Configure the `vault-creds` Jenkins credential (section 2).
 4. Run `ACTION=BUILD_AND_DEPLOY`, `COMPONENT=ALL`, `K8S_NAMESPACE=<ns>`.
 5. Open `https://lifeforge-frontend.<ns>.kahitoz.com`. The frontend calls
-   `https://lifeforge-backend.<ns>.kahitoz.com` directly (that URL is baked
-   into the image at build time).
+   `https://lifeforge-backend.<ns>.kahitoz.com/api` (that URL is baked into
+   the image at build time).
 
 ## 5. Notes
 
 - **Frontend API URL is build-time.** `NEXT_PUBLIC_API_URL` is inlined into the
   client bundle, so the image for namespace `X` always talks to
-  `lifeforge-backend.X.kahitoz.com`. Building once and deploying to two
+  `lifeforge-backend.X.kahitoz.com/api`. Building once and deploying to two
   namespaces would leave one image pointing at the wrong backend.
+- **API path.** FastAPI exposes application routes under `/api`; the backend
+  ingress routes that prefix to the backend Service. Health checks remain at
+  `/health` inside the cluster.
 - **Database schema.** The backend boots with `AUTO_CREATE=true`, creating any
   missing tables on startup (idempotent). For schema *evolution*, switch the
   Deployment to `AUTO_CREATE=false` and run `alembic upgrade head` (the image

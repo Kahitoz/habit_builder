@@ -32,6 +32,7 @@ uv run alembic revision --autogenerate -m "change"   # new migration
 Useful URLs:
 
 - API root: `http://localhost:8000`
+- Application routes: `http://localhost:8000/api/...`
 - OpenAPI docs: `http://localhost:8000/docs`
 - Health: `GET /health` → `{"status":"ok"}`
 

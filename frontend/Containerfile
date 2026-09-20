@@ -2,7 +2,7 @@
 #
 # Build (from the repo root):
 #   podman build -f frontend/Containerfile \
-#     --build-arg NEXT_PUBLIC_API_URL=https://lifeforge-backend.<ns>.kahitoz.com \
+#     --build-arg NEXT_PUBLIC_API_URL=https://lifeforge-backend.<ns>.kahitoz.com/api \
 #     -t <registry>/lifeforge-frontend:<tag> frontend/
 #
 # The production .next build is produced INSIDE the image (never copied in),
@@ -28,7 +28,7 @@ COPY . .
 RUN rm -rf .next
 
 # Build-time API base URL, inlined into the client bundle.
-ARG NEXT_PUBLIC_API_URL="http://localhost:8000"
+ARG NEXT_PUBLIC_API_URL="http://localhost:8000/api"
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN pnpm build
 

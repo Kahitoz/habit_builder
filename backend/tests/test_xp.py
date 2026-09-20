@@ -36,7 +36,7 @@ def test_difficulty_xp_and_perfect_day(client, user):
     for diff in totals:
         h = make_habit(client, user["headers"], title=f"H {diff}",
                        difficulty=diff)
-        r = client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
+        r = client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
         assert r.status_code == 200
     # All 3 habits done today -> 60 + 50 perfect-day bonus.
     assert total_xp(client, user["headers"]) == 110
@@ -44,8 +44,8 @@ def test_difficulty_xp_and_perfect_day(client, user):
 
 def test_level_info_in_dashboard(client, user):
     h = make_habit(client, user["headers"], difficulty="hard")
-    client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
-    dash = client.get("/dashboard/today", headers=user["headers"]).json()
+    client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
+    dash = client.get("/api/dashboard/today", headers=user["headers"]).json()
     assert dash["level"]["level"] == 1
     assert dash["level"]["totalXp"] == 80
     assert dash["level"]["xpForNextLevel"] == 420
@@ -57,7 +57,7 @@ def test_streak_bonuses_granted_once(client, user):
     today = date.fromisoformat(today_str(client, user["headers"]))
     dates = [(today - timedelta(days=n)).isoformat() for n in range(6, -1, -1)]
     for iso in dates:
-        client.post(f"/habits/{h['id']}/complete", json={"date": iso},
+        client.post(f"/api/habits/{h['id']}/complete", json={"date": iso},
                     headers=user["headers"])
     expected = 7 * 10 + 7 * 50 + 75
     assert total_xp(client, user["headers"]) == expected

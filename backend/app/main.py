@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_exception_handlers(app)
-    app.include_router(api_router)
+    app.include_router(api_router, prefix="/api")
 
     @app.get("/health", tags=["meta"])
     def health() -> dict:

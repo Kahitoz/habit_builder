@@ -18,32 +18,32 @@ def test_habit_crud_and_validation(client, user):
     assert h["completedToday"] is False
     assert h["frequencyType"] == "daily" and h["active"] is True
 
-    got = client.get(f"/habits/{h['id']}", headers=user["headers"])
+    got = client.get(f"/api/habits/{h['id']}", headers=user["headers"])
     assert got.status_code == 200 and got.json()["title"] == "Meditate"
 
-    patched = client.patch(f"/habits/{h['id']}",
+    patched = client.patch(f"/api/habits/{h['id']}",
                            json={"title": "Meditate 2.0", "difficulty": "hard"},
                            headers=user["headers"])
     assert patched.status_code == 200
     assert patched.json()["title"] == "Meditate 2.0"
     assert patched.json()["difficulty"] == "hard"
 
-    bad_freq = client.post("/habits",
+    bad_freq = client.post("/api/habits",
                            json={"title": "x", "frequencyType": "custom_days"},
                            headers=user["headers"])
     assert bad_freq.status_code == 422
     assert bad_freq.json()["error"]["code"] == "VALIDATION_ERROR"
 
-    bad_diff = client.post("/habits",
+    bad_diff = client.post("/api/habits",
                            json={"title": "x", "difficulty": "impossible"},
                            headers=user["headers"])
     assert bad_diff.status_code == 422
 
-    assert client.delete(f"/habits/{h['id']}",
+    assert client.delete(f"/api/habits/{h['id']}",
                          headers=user["headers"]).status_code == 204
-    assert client.get(f"/habits/{h['id']}",
+    assert client.get(f"/api/habits/{h['id']}",
                       headers=user["headers"]).status_code == 404
-    assert client.get("/habits", headers=user["headers"]).json() == []
+    assert client.get("/api/habits", headers=user["headers"]).json() == []
 
 
 def test_streaks_undo_and_xp_ledger(client, user):
@@ -52,14 +52,14 @@ def test_streaks_undo_and_xp_ledger(client, user):
 
     # Seven consecutive days, oldest first.
     for n in range(6, -1, -1):
-        r = client.post(f"/habits/{h['id']}/complete",
+        r = client.post(f"/api/habits/{h['id']}/complete",
                         json={"date": shift(today, -n)}, headers=user["headers"])
         assert r.status_code == 200
     assert r.json()["currentStreak"] == 7
     assert r.json()["longestStreak"] == 7
 
     # Re-ticking the same day is idempotent (no double XP).
-    client.post(f"/habits/{h['id']}/complete", json={"date": today},
+    client.post(f"/api/habits/{h['id']}/complete", json={"date": today},
                 headers=user["headers"])
     # 7 x 20 (medium) + 7 x 50 (perfect days) + 75 (streak-7 bonus)
     assert total_xp(client, user["headers"]) == 565
@@ -67,14 +67,14 @@ def test_streaks_undo_and_xp_ledger(client, user):
     # Undo a mid-streak day: completion XP and that day's perfect bonus
     # are reversed; the streak bonus stays. The derived longest streak
     # shrinks with the history (no phantom runs from deleted rows).
-    client.delete(f"/habits/{h['id']}/complete/{shift(today, -3)}",
+    client.delete(f"/api/habits/{h['id']}/complete/{shift(today, -3)}",
                   headers=user["headers"])
-    got = client.get(f"/habits/{h['id']}", headers=user["headers"]).json()
+    got = client.get(f"/api/habits/{h['id']}", headers=user["headers"]).json()
     assert got["currentStreak"] == 3
     assert got["longestStreak"] == 3
     assert total_xp(client, user["headers"]) == 495
 
-    hist = client.get(f"/habits/{h['id']}/history?days=30",
+    hist = client.get(f"/api/habits/{h['id']}/history?days=30",
                       headers=user["headers"]).json()
     assert len(hist["completions"]) == 6
     assert hist["currentStreak"] == 3 and hist["longestStreak"] == 3
@@ -94,7 +94,7 @@ def test_custom_days_streak_robust_to_unscheduled_days(client, user):
         probe -= timedelta(days=1)
 
     for iso in reversed(scheduled):
-        r = client.post(f"/habits/{h['id']}/complete", json={"date": iso},
+        r = client.post(f"/api/habits/{h['id']}/complete", json={"date": iso},
                         headers=user["headers"])
         assert r.status_code == 200
     assert r.json()["currentStreak"] == 3
@@ -106,24 +106,24 @@ def test_value_based_completion(client, user):
                    unit="min", difficulty="easy")
     today = today_str(client, user["headers"])
 
-    below = client.post(f"/habits/{h['id']}/complete", json={"value": 10},
+    below = client.post(f"/api/habits/{h['id']}/complete", json={"value": 10},
                         headers=user["headers"]).json()
     assert below["completedToday"] is False
     assert total_xp(client, user["headers"]) == 0
 
-    at = client.post(f"/habits/{h['id']}/complete", json={"value": 35},
+    at = client.post(f"/api/habits/{h['id']}/complete", json={"value": 35},
                      headers=user["headers"]).json()
     assert at["completedToday"] is True
     assert total_xp(client, user["headers"]) == 60  # 10 + 50 perfect day
 
-    stats = client.get(f"/habits/{h['id']}/stats",
+    stats = client.get(f"/api/habits/{h['id']}/stats",
                        headers=user["headers"]).json()
     assert stats["totalCompletions"] == 1
     assert stats["totalValue"] == 35
     assert stats["lastCompletedDate"] == today
 
     # Dropping below target again unticks for XP purposes.
-    lower = client.post(f"/habits/{h['id']}/complete", json={"value": 5},
+    lower = client.post(f"/api/habits/{h['id']}/complete", json={"value": 5},
                         headers=user["headers"]).json()
     assert lower["completedToday"] is False
     assert total_xp(client, user["headers"]) == 0
@@ -134,7 +134,7 @@ def test_times_per_week_counts_consecutive_days(client, user):
                    frequencyTarget=3)
     today = today_str(client, user["headers"])
     for n in (3, 2, 1, 0):
-        r = client.post(f"/habits/{h['id']}/complete",
+        r = client.post(f"/api/habits/{h['id']}/complete",
                         json={"date": shift(today, -n)}, headers=user["headers"])
     assert r.json()["currentStreak"] == 4
 
@@ -144,20 +144,20 @@ def test_habits_are_isolated_between_users(client):
     _, b = register(client)
     ha = make_habit(client, a, title="A habit")
 
-    assert client.get(f"/habits/{ha['id']}", headers=b).status_code == 404
-    assert client.post(f"/habits/{ha['id']}/complete", headers=b).status_code == 404
-    assert client.patch(f"/habits/{ha['id']}", json={"title": "hijack"},
+    assert client.get(f"/api/habits/{ha['id']}", headers=b).status_code == 404
+    assert client.post(f"/api/habits/{ha['id']}/complete", headers=b).status_code == 404
+    assert client.patch(f"/api/habits/{ha['id']}", json={"title": "hijack"},
                         headers=b).status_code == 404
-    assert client.get("/habits", headers=b).json() == []
-    assert len(client.get("/habits", headers=a).json()) == 1
+    assert client.get("/api/habits", headers=b).json() == []
+    assert len(client.get("/api/habits", headers=a).json()) == 1
 
 
 def test_delete_habit_revokes_perfect_day_but_keeps_earned_xp(client, user):
     h = make_habit(client, user["headers"], difficulty="hard")
-    client.post(f"/habits/{h['id']}/complete", headers=user["headers"])
+    client.post(f"/api/habits/{h['id']}/complete", headers=user["headers"])
     assert total_xp(client, user["headers"]) == 80  # 30 + 50 perfect day
 
-    assert client.delete(f"/habits/{h['id']}",
+    assert client.delete(f"/api/habits/{h['id']}",
                          headers=user["headers"]).status_code == 204
     # Deleting the only habit makes today unscheduled, so the perfect-day
     # bonus is revoked; already-earned completion XP stays on the ledger.
@@ -167,10 +167,10 @@ def test_delete_habit_revokes_perfect_day_but_keeps_earned_xp(client, user):
 def test_active_only_filter(client, user):
     h1 = make_habit(client, user["headers"], title="Keep")
     make_habit(client, user["headers"], title="Drop")
-    client.patch(f"/habits/{h1['id']}", json={"active": False},
+    client.patch(f"/api/habits/{h1['id']}", json={"active": False},
                  headers=user["headers"])
-    all_habits = client.get("/habits", headers=user["headers"]).json()
-    active_only = client.get("/habits?activeOnly=true",
+    all_habits = client.get("/api/habits", headers=user["headers"]).json()
+    active_only = client.get("/api/habits?activeOnly=true",
                              headers=user["headers"]).json()
     assert len(all_habits) == 2
     assert [x["title"] for x in active_only] == ["Drop"]

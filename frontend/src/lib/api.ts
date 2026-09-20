@@ -1,7 +1,7 @@
 import { useAuthStore } from "./store";
 import type { AuthResponse } from "./types";
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
 
 /** Error thrown for non-2xx API responses. */
 export class ApiError extends Error {

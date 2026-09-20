@@ -20,7 +20,7 @@ defines no API routes and performs no server-side data fetching.
 cd frontend
 pnpm install
 
-# point at the API (default: http://localhost:8000)
+# point at the API (default: http://localhost:8000/api)
 cp .env.example .env.local   # edit if the API runs elsewhere
 
 pnpm dev          # http://localhost:3000
@@ -44,7 +44,7 @@ frontend is unaffected by that switch.
 
 | Variable               | Default                    | Notes                              |
 | ---------------------- | -------------------------- | ---------------------------------- |
-| `NEXT_PUBLIC_API_URL`  | `http://localhost:8000`    | Base URL of the FastAPI backend    |
+| `NEXT_PUBLIC_API_URL`  | `http://localhost:8000/api` | Base URL of the FastAPI backend    |
 
 ## Structure
 

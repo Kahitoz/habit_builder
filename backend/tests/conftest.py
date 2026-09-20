@@ -78,7 +78,7 @@ def register(client: TestClient, email: str | None = None,
     """Register a throwaway account; return (authPayload, authHeaders)."""
     email = email or f"user-{uuid.uuid4().hex[:10]}@example.com"
     response = client.post(
-        "/auth/register",
+        "/api/auth/register",
         json={"email": email, "password": password,
               "displayName": "Tester", **extra},
     )
@@ -103,19 +103,19 @@ def user(client):
 def make_habit(client, headers, /, **overrides):
     body = {"title": "Test habit", "frequencyType": "daily",
             "difficulty": "medium", **overrides}
-    response = client.post("/habits", json=body, headers=headers)
+    response = client.post("/api/habits", json=body, headers=headers)
     assert response.status_code == 201, response.text
     return response.json()
 
 
 def total_xp(client, headers) -> int:
-    response = client.get("/analytics/overview", headers=headers)
+    response = client.get("/api/analytics/overview", headers=headers)
     assert response.status_code == 200, response.text
     return response.json()["totalXp"]
 
 
 def today_str(client, headers) -> str:
     """The server's notion of today in the user's timezone (ISO)."""
-    response = client.get("/dashboard/today", headers=headers)
+    response = client.get("/api/dashboard/today", headers=headers)
     assert response.status_code == 200, response.text
     return response.json()["date"]

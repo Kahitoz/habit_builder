@@ -1,0 +1,26 @@
+# Optional Postgres instance for the LifeForge backend.
+#
+#   docker compose up -d postgres
+#   export DATABASE_URL="postgresql+psycopg://lifeforge:changeme@localhost:5432/lifeforge"
+#
+# Without it, the backend defaults to SQLite via DATABASE_URL.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lifeforge-postgres
+    environment:
+      POSTGRES_USER: lifeforge
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: lifeforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - lifeforge_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  lifeforge_pgdata:

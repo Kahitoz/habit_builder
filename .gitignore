@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Databases (local SQLite; Postgres is external)
+*.db
+*.sqlite3
+
+# Environment
+.env
+
+# Node (frontend has its own .gitignore; belt and braces)
+node_modules/
+.next/
+
+# OS / editor
+.DS_Store

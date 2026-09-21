@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
     <div>
       <PageHeader title="Analytics" description="Your progress, quantified." />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={ListTodo} label="Total completions" value={overview ? String(overview.totalCompletions) : "–"} />
         <StatCard
           icon={Flame}

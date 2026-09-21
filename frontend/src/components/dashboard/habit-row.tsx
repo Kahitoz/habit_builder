@@ -37,7 +37,12 @@ export function HabitRow({ habit, date }: { habit: DayHabit; date: string }) {
         <p className={cn("truncate text-sm font-medium", habit.done && "text-muted-foreground")}>
           {habit.title}
         </p>
-        <div className="mt-0.5 flex items-center gap-2">
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {habit.atRisk && !habit.done && (
+            <Badge variant="danger" title="Do this today to protect your streak">
+              <TriangleAlert size={11} /> streak at risk
+            </Badge>
+          )}
           {habit.goalTitle && (
             <span className="truncate text-[11px] text-muted-foreground">
               → {habit.goalTitle}
@@ -49,13 +54,8 @@ export function HabitRow({ habit, date }: { habit: DayHabit; date: string }) {
         </div>
       </div>
 
-      {habit.atRisk && !habit.done && (
-        <Badge variant="danger" title="Do this today to protect your streak">
-          <TriangleAlert size={11} /> streak at risk
-        </Badge>
-      )}
       {habit.currentStreak > 0 && (
-        <span className="flex items-center gap-0.5 text-xs font-medium text-warning tabular-nums">
+        <span className="flex shrink-0 items-center gap-0.5 text-xs font-medium text-warning tabular-nums">
           <Flame size={12} /> {habit.currentStreak}
         </span>
       )}

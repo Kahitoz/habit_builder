@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Command } from "lucide-react";
+import { Command, Menu, Search } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { useCommandPalette } from "@/lib/palette-store";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { MobileNavDrawer } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -22,6 +24,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // the commit that may still be serving the server snapshot. By the next
   // render the hook values come from the rehydrated client state.
   const [hydrated, setHydrated] = React.useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+
+  // Close the mobile drawer if the viewport grows to the desktop breakpoint.
+  React.useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setMobileNavOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   React.useEffect(() => {
     // If storage was unavailable when the store was created, the persist
@@ -63,18 +76,55 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border px-6 py-2">
-          <p className="text-xs text-muted-foreground">
-            {new Date().toLocaleDateString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+
+      <MobileNavDrawer open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}>
+        <Sidebar fluid onNavigate={() => setMobileNavOpen(false)} />
+      </MobileNavDrawer>
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Mobile top bar: hamburger, brand, quick-actions search */}
+        <header className="flex items-center justify-between border-b border-border px-3 py-2.5 md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation"
+            className="-ml-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Menu size={20} />
+          </button>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-sm font-bold tracking-tight"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground text-[10px] font-black">
+              LF
+            </span>
+            LifeForge
+          </Link>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Quick actions"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Search size={18} />
+          </button>
+        </header>
+
+        {/* Desktop top bar */}
+        <div className="hidden items-center justify-between border-b border-border px-6 py-2 md:flex">
+          <p className="text-xs text-muted-foreground">{todayLabel}</p>
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -86,7 +136,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </button>
         </div>
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
       <CommandPalette />
     </div>

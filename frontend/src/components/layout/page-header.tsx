@@ -16,7 +16,11 @@ export function PageHeader({ title, description, actions, className, ...props }:
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }

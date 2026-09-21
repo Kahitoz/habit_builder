@@ -85,7 +85,7 @@ export function HabitCard({
             </span>
           )}
         </div>
-        <div className="mt-1.5 flex items-center gap-3 text-[11px]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
           <span className="flex items-center gap-1 text-warning">
             <Flame size={12} /> {habit.currentStreak}
           </span>

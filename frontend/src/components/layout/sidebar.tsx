@@ -28,7 +28,13 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
-export function Sidebar() {
+export function Sidebar({
+  onNavigate,
+  fluid = false,
+}: {
+  onNavigate?: () => void;
+  fluid?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -53,9 +59,15 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-border bg-card">
+    <aside
+      className={cn(
+        "flex h-full shrink-0 flex-col bg-card",
+        fluid ? "w-full" : "w-56 border-r border-border",
+      )}
+    >
       <Link
         href="/dashboard"
+        onClick={() => onNavigate?.()}
         className="flex items-center gap-2 px-4 py-4 text-sm font-bold tracking-tight"
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-black">
@@ -71,6 +83,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => onNavigate?.()}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 active

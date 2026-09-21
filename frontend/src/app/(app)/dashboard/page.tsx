@@ -68,7 +68,7 @@ function SummaryCard() {
               {perfectDay.remaining} more for a perfect day (+{perfectDay.bonus} XP)
             </p>
           )}
-          <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span title="Today">
               today {consistency.today.completed}/{consistency.today.scheduled}
             </span>

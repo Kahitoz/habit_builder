@@ -204,7 +204,7 @@ export function GoalFormDialog({
             </Button>
           </div>
           {(milestones ?? []).map((m, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Input
                 placeholder={`Milestone ${i + 1}`}
                 className="flex-1"
@@ -212,15 +212,17 @@ export function GoalFormDialog({
                 onChange={(e) => setMilestone(i, "title", e.target.value)}
                 onBlur={() => errors.milestones?.[i]}
               />
-              <Input
-                type="date"
-                className="w-36"
-                value={m.targetDate}
-                onChange={(e) => setMilestone(i, "targetDate", e.target.value)}
-              />
-              <Button type="button" variant="ghost" size="icon" onClick={() => removeMilestone(i)} title="Remove">
-                <Trash2 size={13} className="text-danger" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  className="w-full sm:w-36 sm:flex-none"
+                  value={m.targetDate}
+                  onChange={(e) => setMilestone(i, "targetDate", e.target.value)}
+                />
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeMilestone(i)} title="Remove">
+                  <Trash2 size={13} className="text-danger" />
+                </Button>
+              </div>
             </div>
           ))}
           {errors.milestones && (
